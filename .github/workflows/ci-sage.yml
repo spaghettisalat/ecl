@@ -97,7 +97,7 @@ jobs:
     - name: Check out SageMath from trac.sagemath.org
       shell: bash {0}
       run: |
-        git clone --depth=1 --origin=trac --branch develop https://trac.sagemath.org/sage.git . && git-trac-command/git-trac checkout $SAGE_TICKET
+        git init && git remote add trac https://trac.sagemath.org/sage.git && git-trac-command/git-trac checkout $SAGE_TICKET
     - uses: actions/download-artifact@v2
       with:
         path: upstream
@@ -186,7 +186,7 @@ jobs:
       - name: Check out SageMath from trac.sagemath.org
         shell: bash {0}
         run: |
-          git clone --depth=1 --origin=trac --branch develop https://trac.sagemath.org/sage.git . && git-trac-command/git-trac checkout $SAGE_TICKET
+          git init && git remote add trac https://trac.sagemath.org/sage.git && git-trac-command/git-trac checkout $SAGE_TICKET
       - uses: actions/download-artifact@v2
         with:
           path: upstream
