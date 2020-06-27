@@ -51,7 +51,7 @@ jobs:
           (cd build/pkgs/${{ env.SPKG }}/src && ./configure && make source-dist) \
           && mkdir -p upstream && cp build/pkgs/${{ env.SPKG }}/src/*.tgz upstream/${{ env.SPKG }}-git.tar.gz \
           && echo "sage-package create ${{ env.SPKG }} --version git --tarball ${{ env.SPKG }}-git.tar.gz --type=optional" > upstream/update-pkgs.sh \
-          && echo "(cd build/pkgs/${{ env.SPKG }}/patches && rm -f ${{ env.REMOVE_PATCHES }})" >> upstream/update-pkgs.sh \
+          && echo "(cd ../build/pkgs/${{ env.SPKG }}/patches && rm -f ${{ env.REMOVE_PATCHES }})" >> upstream/update-pkgs.sh \
           && ls -l upstream/
       - uses: actions/upload-artifact@v2
         with:
@@ -101,7 +101,7 @@ jobs:
       shell: bash {0}
       # Random sleep and retry to limit the load on trac.sagemath.org
       run: |
-        git init && git remote add trac ${{ env.SAGE_TRAC_GIT }} && x=1 && while [ $x -le 5 ]; do x=$(( $x + 1 )); sleep $(( $RANDOM % 40 + 1 )); if git-trac-command/git-trac checkout $SAGE_TICKET; then exit 0; fi; done; exit 1
+        git init && git remote add trac ${{ env.SAGE_TRAC_GIT }} && x=1 && while [ $x -le 5 ]; do x=$(( $x + 1 )); sleep $(( $RANDOM % 60 + 1 )); if git-trac-command/git-trac checkout $SAGE_TICKET; then exit 0; fi; done; exit 1
     - uses: actions/download-artifact@v2
       with:
         path: upstream
@@ -114,7 +114,7 @@ jobs:
         choco install $PACKAGES --source cygwin
     - name: Update Sage packages from upstream artifact
       run: |
-        C:\\tools\\cygwin\\bin\\bash -l -c 'cd $(cygpath -u "$GITHUB_WORKSPACE") && ls -l upstream/ && export PATH="$(pwd)/build/bin:$PATH:/usr/local/bin:/usr/bin" && (cd upstream && bash update-pkgs.sh) && git diff'
+        C:\\tools\\cygwin\\bin\\bash -l -c 'cd $(cygpath -u "$GITHUB_WORKSPACE") && ls -l upstream/ && export PATH="$(pwd)/build/bin:$PATH:/usr/local/bin:/usr/bin" && (cd upstream && bash -x update-pkgs.sh) && git diff'
     - name: bootstrap
       run: |
         C:\\tools\\cygwin\\bin\\bash -l -c 'export PATH=/usr/local/bin:/usr/bin && cd $(cygpath -u "$GITHUB_WORKSPACE") && env && ./bootstrap'
@@ -190,7 +190,7 @@ jobs:
       - name: Check out SageMath from trac.sagemath.org
         shell: bash {0}
         run: |
-          git init && git remote add trac ${{ env.SAGE_TRAC_GIT }} && x=1 && while [ $x -le 5 ]; do x=$(( $x + 1 )); sleep $(( $RANDOM % 40 + 1 )); if git-trac-command/git-trac checkout $SAGE_TICKET; then exit 0; fi; done; exit 1
+          git init && git remote add trac ${{ env.SAGE_TRAC_GIT }} && x=1 && while [ $x -le 5 ]; do x=$(( $x + 1 )); sleep $(( $RANDOM % 60 + 1 )); if git-trac-command/git-trac checkout $SAGE_TICKET; then exit 0; fi; done; exit 1
       - uses: actions/download-artifact@v2
         with:
           path: upstream
@@ -201,7 +201,7 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install python-tox python3-setuptools
       - name: Update Sage packages from upstream artifact
         run: |
-          (export PATH=$(pwd)/build/bin:$PATH; (cd upstream && bash update-pkgs.sh) && sed -i.bak '/upstream/d' .dockerignore && echo "/:toolchain:/i ADD upstream upstream" | sed -i.bak -f - build/bin/write-dockerfile.sh && git diff)
+          (export PATH=$(pwd)/build/bin:$PATH; (cd upstream && bash -x update-pkgs.sh) && sed -i.bak '/upstream/d' .dockerignore && echo "/:toolchain:/i ADD upstream upstream" | sed -i.bak -f - build/bin/write-dockerfile.sh && git diff)
       - run: |
           set -o pipefail; EXTRA_DOCKER_BUILD_ARGS="--build-arg USE_MAKEFLAGS=\"-k V=0 SAGE_NUM_THREADS=3\"" tox -e $TOX_ENV -- $TARGETS 2>&1 | sed "/^configure: notice:/s|^|::warning file=artifacts/$LOGS_ARTIFACT_NAME/config.log::|;/^configure: warning:/s|^|::warning file=artifacts/$LOGS_ARTIFACT_NAME/config.log::|;/^configure: error:/s|^|::error file=artifacts/$LOGS_ARTIFACT_NAME/config.log::|;"
       - name: Copy logs from the docker image or build container
