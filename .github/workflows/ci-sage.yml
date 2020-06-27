@@ -46,12 +46,12 @@ jobs:
         run: |
           sudo DEBIAN_FRONTEND=noninteractive apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install $DIST_PREREQ
-      - name: Run make dist
+      - name: Run make dist, prepare upstream artifact
         run: |
           (cd build/pkgs/${{ env.SPKG }}/src && ./configure && make source-dist) \
           && mkdir -p upstream && cp build/pkgs/${{ env.SPKG }}/src/*.tgz upstream/${{ env.SPKG }}-git.tar.gz \
           && echo "sage-package create ${{ env.SPKG }} --version git --tarball ${{ env.SPKG }}-git.tar.gz --type=optional" > upstream/update-pkgs.sh \
-          && echo "(cd ../build/pkgs/${{ env.SPKG }}/patches && rm -f ${{ env.REMOVE_PATCHES }})" >> upstream/update-pkgs.sh \
+          && if [ -n "${{ env.REMOVE_PATCHES }})"; then echo "(cd ../build/pkgs/${{ env.SPKG }}/patches && rm -f ${{ env.REMOVE_PATCHES }})" >> upstream/update-pkgs.sh; fi \
           && ls -l upstream/
       - uses: actions/upload-artifact@v2
         with:
@@ -101,7 +101,7 @@ jobs:
       shell: bash {0}
       # Random sleep and retry to limit the load on trac.sagemath.org
       run: |
-        git init && git remote add trac ${{ env.SAGE_TRAC_GIT }} && x=1 && while [ $x -le 5 ]; do x=$(( $x + 1 )); sleep $(( $RANDOM % 60 + 1 )); if git-trac-command/git-trac checkout $SAGE_TICKET; then exit 0; fi; done; exit 1
+        git init && git remote add trac ${{ env.SAGE_TRAC_GIT }} && x=1 && while [ $x -le 5 ]; do x=$(( $x + 1 )); sleep $(( $RANDOM % 60 + 1 )); if git-trac-command/git-trac checkout $SAGE_TICKET; then exit 0; fi; sleep 40; done; exit 1
     - uses: actions/download-artifact@v2
       with:
         path: upstream
@@ -190,7 +190,7 @@ jobs:
       - name: Check out SageMath from trac.sagemath.org
         shell: bash {0}
         run: |
-          git init && git remote add trac ${{ env.SAGE_TRAC_GIT }} && x=1 && while [ $x -le 5 ]; do x=$(( $x + 1 )); sleep $(( $RANDOM % 60 + 1 )); if git-trac-command/git-trac checkout $SAGE_TICKET; then exit 0; fi; done; exit 1
+          git init && git remote add trac ${{ env.SAGE_TRAC_GIT }} && x=1 && while [ $x -le 5 ]; do x=$(( $x + 1 )); sleep $(( $RANDOM % 60 + 1 )); if git-trac-command/git-trac checkout $SAGE_TICKET; then exit 0; fi; sleep 40; done; exit 1
       - uses: actions/download-artifact@v2
         with:
           path: upstream
