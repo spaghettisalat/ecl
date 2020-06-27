@@ -25,16 +25,12 @@ on: [push, pull_request]
 ##       - '*'
 
 env:
-  DIST_PREREQ: libgmp-dev autoconf automake libtool libmpfr-dev
-  SPKG:        fplll
+  DIST_PREREQ: autoconf
+  SPKG:        ecl
   TARGETS_PRE: build/make/Makefile
-  TARGETS:     SAGE_CHECK=yes fplll
+  TARGETS:     SAGE_CHECK=yes ecl maxima
   TARGETS_OPTIONAL: build/make/Makefile
-  SAGE_REPO:   mkoeppe/sage
-  SAGE_REF:    ci-29091
-  # SAGE_REPO:   sagemath/sage
-  # SAGE_REF:    develop
-
+  SAGE_TICKET: 22191
 jobs:
 
   dist:
@@ -84,16 +80,31 @@ jobs:
     - run: |
         git config --global core.autocrlf false
         git config --global core.symlinks true
-    - name: Check out SageMath
+
+    - name: Check out git-trac-command
       uses: actions/checkout@v2
       with:
-        repository: ${{ env.SAGE_REPO }}
-        ref: ${{ env.SAGE_REF }}
+        repository: sagemath/git-trac-command
+        path: git-trac-command
+
+    - name: install cygwin with choco
+      shell: bash {0}
+      run: |
+        choco --version
+        PACKAGES=$(sed 's/#.*//;' ./build/pkgs/cygwin.txt ./build/pkgs/cygwin-bootstrap.txt)
+        choco install git python3 --source cygwin
+
+    - name: Check out SageMath from trac.sagemath.org
+      shell: bash {0}
+      run: |
+        git clone --depth=0 --origin=trac --branch develop https://trac.sagemath.org/sage.git .
+        git-trac-command/git-trac checkout $SAGE_TICKET
+
     - uses: actions/download-artifact@v2
       with:
         path: upstream
         name: upstream
-    - name: install cygwin and minimal prerequisites with choco
+    - name: install minimal prerequisites with choco
       shell: bash {0}
       run: |
         choco --version
@@ -162,11 +173,25 @@ jobs:
       LOGS_ARTIFACT_NAME: logs-commit-${{ github.sha }}-tox-docker-${{ matrix.tox_system_factor }}-${{ matrix.tox_packages_factor }}
       DOCKER_TARGETS: configured with-targets
     steps:
-      - name: Check out SageMath
+      - name: Check out git-trac-command
         uses: actions/checkout@v2
         with:
-          repository: ${{ env.SAGE_REPO }}
-          ref: ${{ env.SAGE_REF }}
+          repository: sagemath/git-trac-command
+          path: git-trac-command
+
+      ## - name: Check out SageMath
+      ##   uses: actions/checkout@v2
+      ##   with:
+      ##     repository: ${{ env.SAGE_REPO }}
+      ##     ref: ${{ env.SAGE_REF }}
+
+      - name: Check out SageMath from trac.sagemath.org
+        shell: bash {0}
+        run: |
+          git clone --depth=0 --origin=trac --branch develop https://trac.sagemath.org/sage.git .
+          git-trac-command/git-trac checkout $SAGE_TICKET
+
+
       - uses: actions/download-artifact@v2
         with:
           path: upstream
