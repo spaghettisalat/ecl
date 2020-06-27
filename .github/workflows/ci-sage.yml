@@ -47,7 +47,7 @@ jobs:
       - name: Run make dist
         run: |
           (cd build/pkgs/${{ env.SPKG }}/src && ./configure && make source-dist) \
-          && mkdir -p upstream && cp build/pkgs/${{ env.SPKG }}/src/*.tar.gz upstream/${{ env.SPKG }}-git.tar.gz \
+          && mkdir -p upstream && cp build/pkgs/${{ env.SPKG }}/src/*.tgz upstream/${{ env.SPKG }}-git.tar.gz \
           && echo "sage-package create ${{ env.SPKG }} --version git --tarball ${{ env.SPKG }}-git.tar.gz --type=optional" > upstream/update-pkgs.sh \
           && ls -l upstream/
       - uses: actions/upload-artifact@v2
