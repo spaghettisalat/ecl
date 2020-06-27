@@ -30,6 +30,7 @@ env:
   TARGETS_PRE: build/make/Makefile
   TARGETS:     SAGE_CHECK=yes ecl maxima
   TARGETS_OPTIONAL: build/make/Makefile
+  SAGE_TRAC_GIT: git://trac.sagemath.org/sage.git
   SAGE_TICKET: 22191
 jobs:
 
@@ -97,7 +98,7 @@ jobs:
     - name: Check out SageMath from trac.sagemath.org
       shell: bash {0}
       run: |
-        git init && git remote add trac https://trac.sagemath.org/sage.git && git-trac-command/git-trac checkout $SAGE_TICKET
+        git init && git remote add trac ${{ SAGE_TRAC_GIT }} && git-trac-command/git-trac checkout $SAGE_TICKET
     - uses: actions/download-artifact@v2
       with:
         path: upstream
@@ -186,7 +187,7 @@ jobs:
       - name: Check out SageMath from trac.sagemath.org
         shell: bash {0}
         run: |
-          git init && git remote add trac https://trac.sagemath.org/sage.git && git-trac-command/git-trac checkout $SAGE_TICKET
+          git init && git remote add trac ${{ SAGE_TRAC_GIT }} && git-trac-command/git-trac checkout $SAGE_TICKET
       - uses: actions/download-artifact@v2
         with:
           path: upstream
