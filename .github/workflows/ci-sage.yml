@@ -32,7 +32,7 @@ env:
   TARGETS_OPTIONAL: build/make/Makefile
   SAGE_TRAC_GIT: git://trac.sagemath.org/sage.git
   SAGE_TICKET: 22191
-  REMOVE_PATCHES: 214.patch 215.patch 216.patch
+  REMOVE_PATCHES: *.patch
 jobs:
 
   dist:
