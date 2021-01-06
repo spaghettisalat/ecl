@@ -1145,9 +1145,9 @@ static void
 wrapped_finalizer(cl_object o, cl_object finalizer);
 
 static void
-deferred_finalizer(cl_object o)
+deferred_finalizer(cl_object* x)
 {
-	wrapped_finalizer(cl_first(o), cl_second(o));
+  wrapped_finalizer(x[0], x[1]);
 }
 
 void
@@ -1155,7 +1155,7 @@ wrapped_finalizer(cl_object o, cl_object finalizer)
 {
   if (finalizer != ECL_NIL && finalizer != NULL) {
 #ifdef ECL_THREADS
-    const cl_env_ptr the_env = ecl_process_env();
+    const cl_env_ptr the_env = ecl_process_env_unsafe();
     if (!the_env
         || !the_env->own_process
         || the_env->own_process->process.phase < ECL_PROCESS_ACTIVE)
@@ -1169,13 +1169,16 @@ wrapped_finalizer(cl_object o, cl_object finalizer)
         * the original finalizer is no more registered to o, and if o
         * is not anymore reachable it will be colleted.  To prevent
         * this we need to make this object reachable again after that
-        * roundtrip and postpone the finalization to the next garbace
-        * colletion.  Given that this is a rare condition one way to
+        * roundtrip and postpone the finalization to the next garbage
+        * collection.  Given that this is a rare condition one way to
         * do that is:
         */
        GC_finalization_proc ofn;
        void *odata;
-       GC_REGISTER_FINALIZER_NO_ORDER(cl_list(2,o,finalizer),
+       cl_object* wrapper = GC_MALLOC(2*sizeof(cl_object));
+       wrapper[0] = o;
+       wrapper[1] = finalizer;
+       GC_REGISTER_FINALIZER_NO_ORDER(wrapper,
                                       (GC_finalization_proc)deferred_finalizer, 0,
                                       &ofn, &odata);
        return;
@@ -1445,7 +1448,7 @@ ecl_alloc_weak_pointer(cl_object o)
   ecl_enable_interrupts_env(the_env);
   obj->t = t_weak_pointer;
   obj->value = o;
-  if (!ECL_FIXNUMP(o) && !ECL_CHARACTERP(o) && !Null(o)) {
+  if (!ECL_IMMEDIATE(o)) {
     GC_GENERAL_REGISTER_DISAPPEARING_LINK((void**)&(obj->value), (void*)o);
     si_set_finalizer((cl_object)obj, ECL_T);
   }

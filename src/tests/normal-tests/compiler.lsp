@@ -76,9 +76,13 @@
 ;;;
 ;;;     There is a problem with SUBTYPEP and type STREAM
 ;;;
+(defclass gray-stream-test (gray:fundamental-character-output-stream) ())
 (test cmp.0005.subtypep-stream
   (is (equal (multiple-value-list
               (subtypep (find-class 'gray:fundamental-stream) 'stream))
+             (list t t)))
+  (is (equal (multiple-value-list
+              (subtypep (find-class 'gray-stream-test) 'stream))
              (list t t))))
 
 ;;; Date: 09/07/2006 (Tim S)
@@ -735,16 +739,16 @@
       (with-compiler ("make-load-form.lsp")
         "(in-package cl-test)"
         "(eval-when (:compile-toplevel)
-      (defparameter s4.0030 (make-instance 'compiler-test-class))
-      (defparameter s5.0030 (make-instance 'compiler-test-class))
-      (setf (compiler-test-parent s5.0030) s4.0030)
-      (setf (compiler-test-children s4.0030) (list s5.0030)))"
+           (defparameter s4.0030 (make-instance 'compiler-test-class))
+           (defparameter s5.0030 (make-instance 'compiler-test-class))
+           (setf (compiler-test-parent s5.0030) s4.0030)
+           (setf (compiler-test-children s4.0030) (list s5.0030)))"
         "(defparameter a.0030 '#.s5.0030)"
         "(defparameter b.0030 '#.s4.0030)"
         "(defparameter c.0030 '#.s5.0030)"
         "(defun foo.0030 ()
-       (let ((*print-circle* t))
-         (with-output-to-string (s) (princ '#1=(1 2 3 #.s4.0030 #1#) s))))")
+           (let ((*print-circle* t))
+             (with-output-to-string (s) (princ '#1=(1 2 3 #.s4.0030 #1#) s))))")
     (declare (ignore output))
     (load file)
     (delete-file "make-load-form.lsp")
@@ -753,7 +757,8 @@
     (is (and (search "#1=(1 2 3 #<a CL-TEST::COMPILER-TEST-CLASS" str)
              (search "> #1#)" str))))
   (is (eq (compiler-test-parent a.0030) b.0030))
-  (is (eq (first (compiler-test-children b.0030)) a.0030)))
+  (is (eq (first (compiler-test-children b.0030)) a.0030))
+  (is (eq a.0030 c.0030)))
 
 ;;; Date: 9/06/2006 (Pascal Costanza)
 ;;; Fixed: 13/06/2006 (juanjo)
@@ -1703,14 +1708,16 @@
 ;;; URL: https://gitlab.com/embeddable-common-lisp/ecl/-/issues/565
 ;;; Description
 ;;;
-;;;     COMPILE-FILE produces two vectors VV and VVtemp which
-;;;     represent the fasl data segment. The latter is deallocated
-;;;     after all top-level forms are evaluated. As compiler processes
-;;;     them currently if the object is first pushed to the temporary
-;;;     segment and then we try to add it to the permanent segment we
-;;;     have two versions of the same objects which are not EQ. File
-;;;     src/cmp/cmpwt.lsp has an appropriate FIXME in the ADD-OBJECT
-;;;     function definition.
+;;;     This test checks whether the same constant is coalesced to the EQ
+;;;     value among three distinct top-level forms.
+;;;
+;;;     ccmp's COMPILE-FILE produces two vectors VV and VVtemp which represent
+;;;     the fasl data segment. The latter is deallocated after all top-level
+;;;     forms are evaluated. As compiler processes them currently if the
+;;;     object is first pushed to the temporary segment and then we try to add
+;;;     it to the permanent segment we have two versions of the same objects
+;;;     which are not EQ. File src/cmp/cmpwt.lsp has an appropriate FIXME in
+;;;     the ADD-OBJECT function definition.
 (test cmp.0076.make-load-form-non-eq
   (multiple-value-bind (file output)
       (with-compiler ("make-temp.lsp")
@@ -1741,8 +1748,6 @@
     (delete-file file))
   (multiple-value-bind (x a b) (foo)
     (is (eq x a) "~a is not eq to ~a" x a)
-    ;; This test passes because B toplevel form is compiled after the
-    ;; function FOO. Included here for completness.
     (is (eq x b) "~a is not eq to ~a" x b)
     (is (eq a b) "~a is not eq to ~a" a b)))
 
@@ -1921,3 +1926,20 @@
                     (multiple-value-setq (*a* *b*) (foo))
                     (and (eq *a* :right-a)
                          (eq *b* :right-b))))))))
+
+;;; Date 2020-08-14
+;;; URL: https://gitlab.com/embeddable-common-lisp/ecl/-/issues/594
+;;; Description
+;;;
+;;;     The code walker used in DEFMETHOD would call MAKE-LOAD-VALUE
+;;;     for literal objects encountered during code walking, even while
+;;;     loading a file or using eval.
+(ext:with-clean-symbols (test-class test-method)
+  (eval '(defclass test-class () ()))
+  (eval '(defmethod make-load-form ((obj test-class) &optional env)
+          (error "We shouldn't have called MAKE-LOAD-FORM here.")))
+  (test cmp.0082.defmethod-make-load-form
+    (let* ((test-obj (make-instance 'test-class))
+           (code `(defmethod test-method ()
+                    ,test-obj)))
+      (finishes (eval code)))))
